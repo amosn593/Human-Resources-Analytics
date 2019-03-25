@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1553257857798.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "C661E27A",
+    "lastKnownWriteTime" : 1553463364,
+    "last_content_update" : 1553463364141,
+    "path" : "E:/R-PROJOCT/HR Analytics/Hr Analytics.R",
+    "project_path" : "Hr Analytics.R",
+    "properties" : {
+        "cursorPosition" : "111,0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

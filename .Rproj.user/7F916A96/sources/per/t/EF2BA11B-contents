@@ -1,0 +1,289 @@
+---
+title: "Human Resources Analytics: Modelling(Random Forest)"
+author: "AMOS NDONGA"
+date: "July 13, 2018"
+output: html_document
+---
+
+## Question Definition
+In this this project, I will try to predict whether an employee will leave employment or not.Companies want to retain their valuable employees and knowing when the employees are likely to leave employment helps the companies plan for replacement.  
+Data set used is from **Kaggle**.  
+
+**Data Description** 
+
+Variable  | Description
+--------------|----------------------------------------------
+Satisfaction_level | Level of employee satisfaction,range(0-1)                      
+Last_evaluation   | Performance during last evaluation,range(0,1)                  
+Number_project   | No. of projects employee was involved                          
+Monthly_hours     | Number of hours worked per month                               
+Year_work           | No. of years employee has worked                               
+Work_accident       | Whether an employee had an accident at work place,(0="No",1="Yes")
+Left                 |  Whether employee has left employment,(0="Not Left",1="Left")
+Promotion_last_5years | Whether promoted in last 5 years.(0="Not promoted",1="Promoted")
+Department            |  Department an employee works
+Salary                |  Salary level;low,medium and high
+
+
+##Reading data into R
+I have already downloaded the data into my working directory and named it hr.csv.
+```{r}
+dat <- read.csv("hr.csv")
+
+```
+We can look at first few rows of the data as we as the structure of the data.
+```{r}
+head(dat)
+```
+```{r}
+str(dat)
+```
+##Data Cleaning
+First we need to check whether our data has missing values,i.e,NAs
+```{r}
+sum(is.na(dat))
+```
+There are no missing values in our, which is a good thing.  
+From structure of our data we saw some variables are of class integer and we we will not do any mathematical calculations on them.So, lets change them to class factor.
+```{r,}
+dat$Promotion_last_5years <- as.factor(dat$Promotion_last_5years)
+dat$Left <- as.factor(dat$Left)
+dat$Work_accident <- as.factor(dat$Work_accident)
+dat$Number_project <- as.factor(dat$Number_project)
+dat$Year_work <- as.factor(dat$Year_work)
+dat$Salary <- factor(dat$Salary,levels=c("low","medium","high"))
+```
+Looking at data structure again to make sure everything is okay.
+```{r}
+str(dat)
+```
+##Data Splitting
+We need to split our data into training and testing data. We will use **caret** package.
+```{r,warning=FALSE,message=FALSE}
+library(caret)
+indx <- createDataPartition(dat$Left,p=0.7,list = FALSE)
+train <- dat[indx,]
+test <- dat[-indx,]
+```
+##Exploratory data analysis
+I will visualize the data and see which explanatory variables have high influence on the dependent variable using **ggplot2** package.  
+Loading ggplot2 package
+```{r,warning=FALSE,message=FALSE}
+library(ggplot2)
+```
+####Satisfaction Level
+We expect that employees who are more satisfied are less likely to leave employment.Lets see if our hypothesis holds.
+```{r}
+ggplot(train,aes(Satisfaction_level,color=Left))+
+        geom_density()+
+        ggtitle("Satisfaction Level")+
+        ylab("Count")+
+        xlab("Satisfaction Level")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+        
+```
+
+Hypothesis seems to hold:more satisfied less likely to leave employment.  
+
+####Last Evaluation
+We expect employees who performed poorly during their last evaluation are more likely to leave employment.
+```{r}
+ggplot(train,aes(Last_evaluation,color=Left))+
+        geom_density()+
+        ggtitle("Last Evaluation")+
+        ylab("Count")+
+        xlab("Last Evaluation")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+        
+```
+
+####Number of Projects
+```{r}
+ggplot(train,aes(Number_project,fill=Left))+
+        geom_bar()+
+        ggtitle("Projects")+
+        ylab("Count")+
+        xlab("Number of Projects")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+        
+```
+
+There seems to be pattern with employees with few and more projects more likely to leave employment.  
+ 
+####Monthly Hours
+```{r}
+ggplot(train,aes(Monthly_hours,color=Left))+
+        geom_density()+
+        ggtitle("Monthly Hours Worked")+
+        ylab("Count")+
+        xlab("Monthly hours")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+        
+```
+
+There is clear pattern.Employees who worked for few hours per month as well as those worked for a lot of hours were more likely to leave.  
+
+####Year_Work
+```{r}
+ggplot(train,aes(Year_work,fill=Left))+
+        geom_bar()+
+        ggtitle("Years of Work")+
+        ylab("Count")+
+        xlab("Years of Work")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+        
+```
+
+
+Employees with many years of work seems to stay to their current employment.  
+
+**Feature engineering year work variable**  
+
+Lets break the year work variable into levels;**Low**, with years of work less than or equal to 2,**Medium**,with years of work between 3 and 6, and **High** with years of work greater than 6.
+```{r,message=FALSE,warning=FALSE}
+library(dplyr) # for data manipulation
+train$Year_work <- as.numeric(train$Year_work) #convert back to numeric
+train <- mutate(train,New_year_work=ifelse(Year_work <=2,"Low",ifelse(
+                Year_work>2 & Year_work<=6,"Medium","High")))#Mutating
+train$New_year_work <- factor(train$New_year_work,levels = c("Low","Medium","High"))#Setting Levels
+```
+
+Now lets visualize the new feature we engineered to see if it is predictive.  
+```{r}
+ggplot(train,aes(New_year_work,fill=Left))+
+        geom_bar()+
+        ggtitle("New Year Work")+
+        ylab("Count")+
+        xlab("New year work")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+```
+
+As you can see, our new feature is very predictive.
+
+
+####Work Accident
+```{r}
+ggplot(train,aes(Work_accident,fill=Left))+
+        geom_bar()+
+        ggtitle("Work Accident")+
+        ylab("Count")+
+        xlab("Work Accident")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+        
+```
+
+There is no clear pattern;Work accident is not predictive.  
+
+#### Promotion Last 5 years
+```{r}
+ggplot(train,aes(Promotion_last_5years,fill=Left))+
+        geom_bar()+
+        ggtitle("Promotion in last 5 years")+
+        ylab("Count")+
+        xlab("Promotion last 5 years")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+```
+
+All employees who got promoted did not leave their employment.  
+
+####Department
+```{r}
+ggplot(train,aes(Department,fill=Left))+
+        geom_bar()+
+        ggtitle("Department")+
+        ylab("Count")+
+        xlab("Department")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+```
+
+There no clear pattern; department is not predictive.  
+
+####Salary
+```{r}
+ggplot(train,aes(Salary,fill=Left))+
+        geom_bar()+
+        ggtitle("Salary")+
+        ylab("Count")+
+        xlab("Salary Level")+
+        theme(plot.title = element_text(hjust = 0.5),legend.title=element_blank())
+```
+
+As you can see, as salary level gets high, an employee is less likely to leave employment.  
+
+##Modelling
+We will fit random forest model using caret package.
+Let subset our train data to include only predictive variables we saw in our exploratory data analysis.
+```{r}
+features <- c("Satisfaction_level","Last_evaluation","Monthly_hours","Promotion_last_5years",
+              "Salary","New_year_work") #Selecting predictive features
+train_1 <- train[,features] #New train data
+head(train_1) #Looking at first few rows.
+label <- train$Left #Selecting dependent variable
+```
+
+####Cross-Validation
+Lets create 5-folds-cross-validation
+```{r,cache=TRUE}
+set.seed(1234)
+cv.5.fold <- createMultiFolds(label,k=5,times = 10)
+```
+
+####Setting up traincontrol
+```{r,warning=FALSE,message=FALSE,cache=TRUE}
+set.seed(1234)
+tr.1 <- trainControl(method="repeatedcV",number=5,repeats=10,summaryFunction=twoClassSummary,                      verbose=FALSE,index = cv.5.fold,savePredictions = "final")
+```
+
+####Training randomforest
+```{r,cache=TRUE,warning=FALSE,message=FALSE}
+set.seed(1234)
+rf.1 <- train(x=train_1,y=label,method='rf',trainControl=tr.1,tunelength=3,
+              mtree=1000,metric="Accuracy")
+```
+Looking at results of our model.
+```{r}
+rf.1
+```
+Our random forest model has accuracy of 97%.  
+
+####Preparing test data set
+We need to take our test data set through the steps we took train data set through.
+
+####1) Make new variable New year work
+```{r,warning=FALSE,message=FALSE}
+test$Year_work <- as.numeric(test$Year_work) #convert back to numeric
+test <- mutate(test,New_year_work=ifelse(Year_work <=2,"Low",ifelse(
+                Year_work>2 & Year_work<=6,"Medium","High")))#Mutating
+test$New_year_work <- factor(test$New_year_work,levels = c("Low","Medium","High"))#Setting Levels
+```
+
+####2) Selecting predictive features
+```{r,message=FALSE,warning=FALSE}
+features <- c("Satisfaction_level","Last_evaluation","Monthly_hours","Promotion_last_5years",
+              "Salary","New_year_work") #Selecting predictive features
+test_1 <- test[,features] #New train data
+head(test_1) #Looking at first few rows.
+```
+
+####Making Prediction
+```{r}
+pred <- predict(rf.1,test_1)
+```
+
+####Confusion Matrix
+```{r}
+confusionMatrix(pred,test$Left)
+```
+
+Our model performed super awesome, we have an accuracy of 98%.
+
+##Conclusion
+Through exploratory data analysis and feature engineering, am able to fit a random forest model with accuracy of (97%,98%).  
+
+Any comment,suggestion or criticism is highly welcomed.  
+
+**Thank You**.
+
+
+
+

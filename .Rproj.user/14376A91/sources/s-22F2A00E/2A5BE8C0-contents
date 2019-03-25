@@ -1,0 +1,114 @@
+---
+title: "Time Series Analysis in R"
+author: "AMOS NDONGA"
+date: "September 12, 2018"
+output: html_document
+---
+
+##Problem Statement
+A time series is a sequence of data being recorded at specific time intervals.The data is time dependent.These data points(past values) are analysed to forecast a future.  
+We will use inbuilt R data set **Airpassengers** to build a time series model to predict airline tickets' sales.
+
+We fit ARIMA Model.ARIMA stands for auto-regressive integrated moving average and is specified by these three order parameters: (p, d, q). The process of fitting an ARIMA model is sometimes referred to as the Box-Jenkins method.
+
+##Reading Data into R
+```{r}
+library(datasets) 
+data("AirPassengers")
+```
+
+##Data Cleaning and Preparation
+Looking at the class of the data set
+```{r}
+class(AirPassengers)
+```
+
+Our data set is of class time series.  
+
+Looking at start point
+```{r}
+library(forecast) #For forecasting
+start(AirPassengers)
+```
+
+The data set starts at 1949, January.  
+
+Looking at end point
+```{r}
+end(AirPassengers)
+```
+
+Our data set ends at 1960, December.  
+
+Looking at frequency of the data set.
+```{r}
+frequency(AirPassengers)
+```
+
+Our data is of monthly intervals.  
+
+Checking for Missing values.
+```{r}
+sum(is.na(AirPassengers))
+```
+
+There are no missing values.
+
+##Data Exploration
+We explore our data set to see the components of timeseries.
+```{r}
+dat <- ts(AirPassengers,frequency = 12)
+dc <- decompose(dat,"multiplicative")
+plot(dc)
+```
+
+From the plot we can see that there is an increasing trend.  
+
+Looking at the original data
+```{r}
+plot(AirPassengers)
+abline(reg = lm(AirPassengers~time(AirPassengers)),col="red")
+```
+
+From the plot we observe:
+
+*  Mean is changing over time(Increasing)
+*  Variance is not constant
+
+This means our time series data set is not stationary.
+
+##Modelling
+We are going to fit an **ARIMA** model. We saw our time series data set is not stationary.We do not have to worry about that as there is function **auto.arima** function to handle that problem.
+
+###Fitting ARIMA Model
+
+We ask **R** for the best model
+
+```{r}
+mymodel <- auto.arima(AirPassengers)
+
+mymodel
+```
+
+Our best ARIMA model is (2,1,1) with seasonality (0,1,0)
+
+###Forecasting for the next 10 years
+
+We use our model to forecast the airline tickets' sales for the next 10 years with a 95% confidence level.
+```{r,message=FALSE,warning=FALSE}
+library(tseries)  # For plotting time series
+myforecast <- forecast(mymodel,level = c(95),h=10*12)
+plot(myforecast)
+```
+
+Our model seems to have learned the pattern in the time series data set very well as the trend in the observed values and predicted values very similar.
+
+##What next
+After an initial naive model is built, it's natural to wonder how to improve on it. Other forecasting techniques, such as exponential smoothing, would help make the model more accurate using a weighted combinations of seasonality, trend, and historical values to make predictions.
+
+
+
+
+**Thank you**
+
+

@@ -1,0 +1,3 @@
+"0","bin_data <- recipe_obj  %>% tidy(1)"
+"0","satisafaction_level_bins <- bin_data %>% filter(terms == ""Satisfaction_level"")"
+"0","as.data.frame(satisafaction_level_bins[,1:2])"

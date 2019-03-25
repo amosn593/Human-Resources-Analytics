@@ -1,0 +1,174 @@
+---
+title: "HUMAN RESOURCES ANALYTICS"
+author: "AMOS NDONGA"
+date: "March 23, 2019"
+output:
+      prettydoc::html_pretty:
+      theme: cayman
+      highlight: github
+      
+subtitle: "Reducing Employee Attrition"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    message = FALSE,
+    warning = FALSE,
+    comment = NA)
+
+```
+
+## Executive Summary
+
+- Satisfaction level and number of projects an employee has been engaged in are correlated to
+employee attrition.  
+- Targeting employees with satisfaction level less than ` 44%` and number of projects engaged in greater than ` 5 ` will reduce employee attrition a lot as these employees have employee attrition rate of `43.5% ` compared to ` 9.6%` otherwise.  
+
+## Analysis  
+
+Correlations to employee attrition by various features. Satisfaction level and number of projects have a high correlation to employee attrition with a correlation coefficient greater than ` 0.25`.  
+
+```{r packages}
+# Loading libraries----
+library(tidyverse)
+library(recipes)
+library(tidyquant)
+library(ggrepel)
+
+```
+
+```{r}
+# Reading the data Set----
+data <- read.csv("hr.csv",header = TRUE)
+
+# variable work_accident, Left and Promotion_last_5years needs to refactored correctly .
+
+data$Work_accident <- fct_recode(as.factor(data$Work_accident), No = "0", Yes = "1")
+data$Left <- fct_recode(as.factor(data$Left),No = "0", Yes = "1")
+data$Promotion_last_5years <- fct_recode(as.factor(data$Promotion_last_5years),No = "0",
+                                                   Yes = "1")
+
+# Relevaling factor levels in salary variable
+data$Salary <- fct_relevel(data$Salary, c("low", "medium", "high"))
+
+
+# Prepare Data ----
+recipe_obj <- recipe(~., data = data) %>%
+        step_discretize(all_numeric(),options = list(min_unique = 1)) %>%
+        step_dummy(all_nominal(), one_hot = TRUE, naming = partial(dummy_names, sep = "-"))%>%
+        prep()
+
+data_transformed <- data %>% bake(recipe_obj, new_data = .)
+
+# Correlation Analysis----
+data_corr <- data_transformed %>%
+        cor(y = data_transformed$`Left-Yes`)%>%
+        as_tibble(rownames = "feature") %>%
+        rename(Left.Yes = V1) %>%
+        separate(feature, into = c("feature","bin"),sep = "-")%>%
+        filter(!is.na(Left.Yes)) %>%
+        filter(!str_detect(feature,"Left"))%>%
+        arrange(abs(Left.Yes) %>% desc())%>%
+        mutate(feature = as.factor(feature) %>% fct_rev())
+
+# Visualize Correlation
+data_corr %>% ggplot(aes(Left.Yes,feature,text=bin))+
+        geom_vline(xintercept = 0,color="red",linetype = 2)+
+        geom_point(color = "#2c3e50")+
+        geom_text_repel(aes(label=bin),color = "#2c3e50",size =3)+
+        expand_limits(x = c(-0.5,0.5))+
+        theme_tq()+
+        theme(plot.title = element_text(hjust = 0.5))+
+        theme(plot.subtitle = element_text(hjust = 0.5))+
+        labs(title = "Human Resources Analytics",subtitle =
+                 "Correlations to Employee Attrition",y = "",
+             x = "Correlation to Employee Attrition")
+
+
+
+```  
+
+- Satisfaction levels bins, in range `0` to    `1`.  
+```{r }
+bin_data <- recipe_obj  %>% tidy(1)
+
+satisafaction_level_bins <- bin_data %>% filter(terms == "Satisfaction_level")
+as.data.frame(satisafaction_level_bins[,1:2])
+```
+
+- Number of projects bins.  
+```{r cache=TRUE}
+projects_bin <- bin_data %>% filter(terms == "Number_project")
+as.data.frame(projects_bin[,1:2])
+
+```
+
+## Strategy  
+
+A strategy targeting employees with satisfaction level less than ` 44% ` and number of projects involved in greater than ` 5` will reduce employee attrition  greatly as these employees has employee attrition rate of ` 43.5% ` compared to `9.6%` otherwise.  
+
+```{r }
+# Strategy----
+
+# Focus on Satisfaction_level on bin1 and Number_project on bin4
+stg_data <- data %>% select(Satisfaction_level, Number_project, Left)%>%
+        mutate(Potential = case_when(Satisfaction_level < 0.44 ~ "High Potential",
+                                     Number_project >= 5 ~ "High Potential",
+                                     TRUE ~ "Normal")) %>%
+        group_by(Potential)%>%
+        count(Left)%>%
+        mutate(Prop = n/sum(n))%>%
+        ungroup()%>%
+        mutate(Label_text = str_glue("n: {n},\nProp: {scales::percent(Prop)}"))
+
+
+# Reporting Results----
+stg_data %>% ggplot(aes(Potential, Prop, fill = Left))+
+        geom_col() +
+        geom_label(aes(label = Label_text), fill = "white", color = "#2c3e50")+
+        scale_fill_tq()+
+        scale_y_continuous(labels = scales::percent_format())+
+        theme_tq()+
+        theme(plot.title = element_text(hjust = 0.5),legend.position = "right")+
+        theme(plot.subtitle = element_text(hjust = 0.5))+
+        labs(title = "Human Resources Analytics",
+             subtitle = "Employees with satisfaction level less than 44% and number of
+             projects engaged in greater than 5 hava employee attrition rate of 43.5% 
+             compared to 9.6% otherwise")
+
+
+
+
+```
+
+####Report's materials
+- Data source <https://www.kaggle.com/arvindbhatt/hrcsv>
+- Source code <https://github.com/amosn593/Human-Resources-Analytics>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

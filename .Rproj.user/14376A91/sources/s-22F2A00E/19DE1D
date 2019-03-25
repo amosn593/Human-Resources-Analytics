@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1553456726213.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1502518712",
+    "id" : "19DE1D",
+    "lastKnownWriteTime" : 1553520465,
+    "last_content_update" : 1553520465194,
+    "path" : "E:/R-PROJOCT/HR Analytics/Hr Analytics.Rmd",
+    "project_path" : "Hr Analytics.Rmd",
+    "properties" : {
+        "cursorPosition" : "147,0",
+        "last_setup_crc32" : "940AA738905c8861",
+        "scrollLine" : "135"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

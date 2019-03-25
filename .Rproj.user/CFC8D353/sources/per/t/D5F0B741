@@ -1,0 +1,24 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1540370105811.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1719657272",
+    "id" : "D5F0B741",
+    "lastKnownWriteTime" : 1540373198,
+    "last_content_update" : 1540375067243,
+    "path" : "E:/R-PROJOCT/HR Analytics/Human_Resources_Analytics.Rmd",
+    "project_path" : "Human_Resources_Analytics.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "293,0",
+        "scrollLine" : "42",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

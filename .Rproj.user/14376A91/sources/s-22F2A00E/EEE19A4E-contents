@@ -1,0 +1,112 @@
+# Marketing Analytics
+
+# Libraries
+library(tidyverse)
+library(readxl)
+library(recipes)
+library(ggrepel)
+library(tidyquant)
+
+# 1.0 Read Excel Sheets ----
+path <- "bank_term_deposit_marketing_analysis.xlsx"
+
+sheets <- excel_sheets(path)
+sheets
+
+# 2.0 Investigate Data For Each Sheet----
+sheets %>% map(~read_excel(path = path, sheet = .)) %>% set_names(sheets)
+
+# 3.0 Perform V-LookUp Equivalent ----
+data_joined <- sheets[4:7] %>% map(~ read_excel(path = path,sheet = .)) %>%
+    reduce(left_join)
+
+# View Data
+View(data_joined)
+
+# Analyse ----
+
+# Prepare data ----
+data_joined %>% glimpse()
+
+recipe_obj <- recipe(~., data = data_joined)%>% 
+    step_rm(ID) %>% 
+    step_discretize(all_numeric(),options = list(min_unique=1)) %>%
+    step_dummy(all_nominal(),one_hot = TRUE, naming = partial(dummy_names,sep='_')) %>%
+    prep()
+
+data_transformed <- data_joined %>% bake(recipe_obj,new_data = .)
+
+# 4.0 Correlation Analysis ----
+corr_data <- data_transformed %>% 
+    cor(y=data_transformed$TERM_DEPOSIT_yes)%>%
+    as_tibble(rownames = "features") %>% 
+    rename(TERM_DEPOSIT_yes= V1)%>%
+    separate(features, into = c("features","bin"),sep="_") %>%
+    filter(!is.na(TERM_DEPOSIT_yes))%>%
+    filter(!str_detect(features,"TERM")) %>%
+    arrange(abs(TERM_DEPOSIT_yes) %>% desc()) %>%
+    mutate(features = as.factor(features) %>% fct_rev())
+
+# Visualize Correlation
+corr_data %>% ggplot(aes(TERM_DEPOSIT_yes,features,text=bin))+
+    geom_vline(xintercept = 0, color = "red", linetype =2)+
+    geom_point(color = "#2c3e50")+
+    geom_text_repel(aes(label = bin),color = "#2c3e50", size = 3)+
+    expand_limits(x = c(-0.4,0.4))+
+    theme_tq()+
+    labs(title = "Banking Marketing Analysis",subtitle = "Correlations to Enrolment in
+         Term Deposits",y="",x="Correlation to Term Deposit")
+
+# Interprete correlation----
+
+# What are the bins
+recipe_obj %>% tidy()
+
+bins_cor <- recipe_obj %>% tidy(2)
+
+bins_cor %>% filter(terms =="DURATION")
+
+
+# 5.0 Strategy----
+# Focus on DURATION Bin 4 and POUTCOME == Success
+
+strategy_tbl <- data_joined %>%
+    select(DURATION,POUTCOME,TERM_DEPOSIT) %>%
+    mutate(POTENTIAL = case_when(
+        DURATION > 319 ~ "High Potential",
+        POUTCOME == "success" ~ "High Potential",
+        TRUE ~ "Normal" ))%>%
+    group_by(POTENTIAL) %>%
+    count(TERM_DEPOSIT) %>%
+    mutate(Prop = n/sum(n)) %>%
+    ungroup() %>%
+    mutate(Label_Text = str_glue("n: {n}, Prop: {scales::percent(Prop)}"))
+
+# 6.0 Report Results
+strategy_tbl %>% ggplot(aes(POTENTIAL,Prop, fill = TERM_DEPOSIT)) +
+    geom_col() +
+    geom_label(aes(label=Label_Text),fill = "white", color = "#2c3e50")+
+    scale_fill_tq()+
+    scale_y_continuous(labels = scales::percent_format())+
+    theme_tq()+
+    labs(title = "Bank Marketing Strategy",
+         subtitle = str_glue("Targeting customers that haven't been contacted in 319
+                             day or those with prior enrollment yields 32% vs 4%"))
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+
+
+
+
+
